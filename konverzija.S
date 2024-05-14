@@ -102,7 +102,7 @@ decimal_u_hex:
     movl $0, %edx
 hex_cifra:
     cmpl $0, %eax
-    jb krajf2
+    jl krajf2
     divl %ebx
     movb %dl, (%edi)
     incl %edi
