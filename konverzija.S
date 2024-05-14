@@ -99,11 +99,19 @@ decimal_u_hex:
     pushl %edi
     movl 12(%ebp), %edi
     movl $16, %ebx
-    movl $0, %edx
 hex_cifra:
+    movl $0, %edx
     cmpl $0, %eax
-    jl krajf2
+    je krajf2
     divl %ebx
+    cmpl $9, %edx
+    ja hex
+    addl $'0', %edx
+    movb %dl, (%edi)
+    incl %edi
+    jmp hex_cifra
+hex:
+    addl $'A' - 10, %edx
     movb %dl, (%edi)
     incl %edi
     jmp hex_cifra
