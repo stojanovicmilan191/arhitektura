@@ -33,9 +33,10 @@ main:
     addl $12, %esp
     movl $broj, %eax
     movl $string_hex, %ebx
-    pushl %ebx
-    pushl %eax
+    pushl %ebx # drugi
+    pushl %eax # prvi
     call decimal_u_hex
+    addl $8, %esp
 kraj:
     movl $1, %eax
     movl $0, %ebx
@@ -94,15 +95,15 @@ decimal_u_hex:
     movl %esp, %ebp
     
     movl 8(%ebp), %edx
-    movl (%edx), %eax
+    movl (%edx), %eax # broj
     pushl %ebx
     pushl %edi
-    movl 12(%ebp), %edi
+    movl 12(%ebp), %edi # string
     movl $16, %ebx
 hex_cifra:
     movl $0, %edx
     cmpl $0, %eax
-    je krajf2
+    je kraj_stringa
     divl %ebx
     cmpl $9, %edx
     ja hex
@@ -115,6 +116,22 @@ hex:
     movb %dl, (%edi)
     incl %edi
     jmp hex_cifra
+kraj_stringa:
+    movl $0, (%edi)
+    decl %edi
+    movl 12(%ebp), %ecx
+zamena:
+    cmpl %ecx, %edi 
+    jna krajf2
+
+    movb (%ecx), %ah
+    movb (%edi), %al
+
+    movb %al, (%ecx)
+    movb %ah, (%edi)
+    decl %edi
+    incl %ecx
+    jmp zamena
 krajf2:
     popl %edi
     popl %ebx
