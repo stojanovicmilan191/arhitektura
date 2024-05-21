@@ -1,13 +1,17 @@
 .section .data
     input_msg: .ascii "Unesite string: \0"
     input_length = . - input_msg
-    output_msg: .ascii "Izlaz: \0"
+    output_msg: .ascii "Najmanji element unetog niza: \0"
     output_length = . - output_msg
     max_len = 30
     string: .fill 30, 1, 42
     string_len: .long 0
     broj: .long 10
-    string_hex: .fill 30, 1, 42
+    string_broj: .fill 30, 1, 42
+    brojevi: .long 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    min: .long 0
+    string_min: .fill 30, 1, 42
+    min_length: .long 0
 .section .text
 .globl main
 main:
@@ -24,25 +28,74 @@ main:
     int $0x80
 
     movl $string, %ecx
-    movl $broj, %edx
+    movl $brojevi, %edx
+    jmp petlja
+korak:
+    incl %ecx
+petlja:
+    cmpb $10, (%ecx)
+    je nadji_min
 
-    pushl %ecx # treci
-    pushl %edx # drugi
-    pushl %eax # prvi
+    cmpb $'0', (%ecx)
+    jb korak
+    cmpb $'9', (%ecx)
+    ja korak
+
+    pushl %ecx # drugi
+    pushl %edx # prvi
     call string_u_decimal
-    addl $12, %esp
-    movl $broj, %eax
-    movl $string_hex, %ebx
+    addl $8, %esp
+
+    movl %eax, %ecx
+
+    addl $4, %edx
+    jmp korak
+nadji_min:
+    movl $brojevi, %ebx
+    movl (%ebx), %eax
+    movl %eax, min
+petlja_min:
+    cmpl %ebx, %edx
+    je pretvori_u_string
+
+    movl (%ebx), %eax
+    cmpl %eax, min
+    ja novi_min
+
+    addl $4, %ebx
+    jmp petlja_min
+novi_min:
+    movl (%ebx), %eax
+    movl %eax, min
+    addl $4, %ebx
+    jmp petlja_min
+pretvori_u_string:
+    movl $min, %eax
+    movl $string_min, %ebx
     pushl %ebx # drugi
     pushl %eax # prvi
-    call decimal_u_hex
+    call decimal_u_string
     addl $8, %esp
+    movl %eax, min_length
+ispis:
+    movl $4, %eax
+    movl $1, %ebx
+    movl $output_msg, %ecx
+    movl $output_length, %edx
+    int $0x80
+
+    movl $4, %eax
+    movl $1, %ebx
+    movl $string_min, %ecx
+    movl min_length, %edx
+    int $0x80
+
 kraj:
     movl $1, %eax
     movl $0, %ebx
     int $0x80
 
-#########################################################################
+################################################################
 
 string_u_decimal:
     pushl %ebp
@@ -54,7 +107,7 @@ string_u_decimal:
     pushl %esi
     pushl %edi
     pushl %ebx
-    movl 16(%ebp), %esi
+    movl 12(%ebp), %esi
 
     movl $0, %edi # greska
     xorl %eax, %eax
@@ -63,6 +116,8 @@ string_u_decimal:
     movl $10, %ecx
 dec_cifra:
     movb (%esi), %bl
+    cmpb $' ', %bl
+    je kraj_dec
     cmpb $10, %bl
     je kraj_dec
     subb $'0', %bl
@@ -71,14 +126,14 @@ dec_cifra:
     incl %esi
     jmp dec_cifra
 kraj_dec:
-    cmpl 16(%ebp), %esi
+    cmpl 12(%ebp), %esi
     jne krajf1
 greska:
     incl %edi
 krajf1:
-    movl 12(%ebp), %edx # adresa rezultata
+    movl 8(%ebp), %edx # adresa rezultata
     movl %eax, (%edx)
-    movl %edi, %eax
+    movl %esi, %eax
     
     popl %ebx
     popl %edi
@@ -88,9 +143,9 @@ krajf1:
     popl %ebp
     ret
 
-#########################################################################
+################################################################
 
-decimal_u_hex:
+decimal_u_string:
     pushl %ebp
     movl %esp, %ebp
     
@@ -99,31 +154,26 @@ decimal_u_hex:
     pushl %ebx
     pushl %edi
     movl 12(%ebp), %edi # string
-    movl $16, %ebx
-hex_cifra:
+    movl $10, %ebx
+cifra:
     movl $0, %edx
     cmpl $0, %eax
     je kraj_stringa
     divl %ebx
-    cmpl $9, %edx
-    ja hex
     addl $'0', %edx
     movb %dl, (%edi)
     incl %edi
-    jmp hex_cifra
-hex:
-    addl $'A' - 10, %edx
-    movb %dl, (%edi)
-    incl %edi
-    jmp hex_cifra
+    jmp cifra
 kraj_stringa:
-    movl $0, (%edi)
+    movl $10, (%edi)
     decl %edi
     movl 12(%ebp), %ecx
+    movl $0, %ebx
 zamena:
     cmpl %ecx, %edi 
-    jna krajf2
+    jna duzina
 
+    incl %ebx
     movb (%ecx), %ah
     movb (%edi), %al
 
@@ -132,7 +182,15 @@ zamena:
     decl %edi
     incl %ecx
     jmp zamena
+duzina:
+    addl %ebx, %ebx
+    addl $1, %ebx
+    cmpl %ecx, %edi
+    jne krajf2
+    addl $1, %ebx
 krajf2:
+    addl %ebx, %ebx
+    movl %ebx, %eax
     popl %edi
     popl %ebx
     movl %ebp, %esp
